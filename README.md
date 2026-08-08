@@ -76,7 +76,9 @@ The prediction is treated as an indication from the available forensic analysis,
 
 ## PDF Report
 
+The report also shows the status of the forensic analysis and the final integrity assessment.
 After the analysis is completed, the system generates a PDF report.
+
 
 The report contains:
 
