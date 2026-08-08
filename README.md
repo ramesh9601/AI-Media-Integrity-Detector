@@ -220,3 +220,5 @@ M.Sc Computer Science
 
 AI Media Integrity Detector
 Version 1.0
+
+Development branch: Deepfake Detection
