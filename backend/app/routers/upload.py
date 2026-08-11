@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Depends
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from sqlalchemy.orm import Session
 import os
 
@@ -30,8 +30,20 @@ async def upload_file(
             "error": "Unsupported file type"
         }
 
-    saved_name = save_file(file)
-    saved_path = os.path.join("uploads", saved_name)
+    try:
+        saved_name = save_file(file)
+
+    except ValueError as error:
+
+        raise HTTPException(
+            status_code=400,
+            detail=str(error)
+        )
+
+    saved_path = os.path.join(
+        "uploads",
+        saved_name
+    )
 
     analysis = {}
 
