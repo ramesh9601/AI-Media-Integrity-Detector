@@ -7,13 +7,18 @@ def detect_copy_move(image_path):
     image = cv2.imread(image_path)
 
     if image is None:
-        raise ValueError("Unable to read image for copy-move analysis.")
+        raise ValueError(
+            "Unable to read image for copy-move analysis."
+        )
 
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(
+        image,
+        cv2.COLOR_BGR2GRAY
+    )
 
     # Detect ORB features
     orb = cv2.ORB_create(
-        nfeatures=1000
+        nfeatures=1500
     )
 
     keypoints, descriptors = orb.detectAndCompute(
@@ -23,57 +28,175 @@ def detect_copy_move(image_path):
 
     output = image.copy()
 
-    # Default result
-    suspicious_matches = 0
+    good_matches = []
+    inlier_matches = []
 
     if descriptors is not None and len(descriptors) > 1:
 
-        # FLANN-based matching
         matcher = cv2.BFMatcher(
             cv2.NORM_HAMMING,
-            crossCheck=True
+            crossCheck=False
         )
 
-        matches = matcher.match(
+        # Find the two closest matches for each descriptor
+        knn_matches = matcher.knnMatch(
             descriptors,
-            descriptors
+            descriptors,
+            k=2
         )
 
-        # Remove self-matches
-        valid_matches = [
-            match
-            for match in matches
-            if match.queryIdx != match.trainIdx
-        ]
+        candidate_matches = []
 
-        # Sort by distance
-        valid_matches = sorted(
-            valid_matches,
-            key=lambda match: match.distance
+        height, width = gray.shape
+
+        # Minimum distance between two matched points
+        min_spatial_distance = max(
+            30,
+            min(width, height) * 0.05
         )
 
-        # Keep only relatively strong matches
-        good_matches = [
-            match
-            for match in valid_matches
-            if match.distance < 35
-        ]
+        for pair in knn_matches:
 
-        suspicious_matches = len(good_matches)
+            if len(pair) < 2:
+                continue
 
-        # Draw detected feature points
-        output = cv2.drawKeypoints(
-            output,
-            keypoints,
-            None,
-            color=(0, 255, 0)
-        )
+            first, second = pair
+
+            # Remove self-match
+            if first.queryIdx == first.trainIdx:
+                continue
+
+            # Lowe-style ratio test
+            if first.distance >= 0.75 * second.distance:
+                continue
+
+            point1 = keypoints[first.queryIdx].pt
+            point2 = keypoints[first.trainIdx].pt
+
+            spatial_distance = (
+                (point1[0] - point2[0]) ** 2
+                +
+                (point1[1] - point2[1]) ** 2
+            ) ** 0.5
+
+            # A copy-move candidate should occur
+            # in a different spatial location.
+            if spatial_distance < min_spatial_distance:
+                continue
+
+            candidate_matches.append(first)
+
+        good_matches = candidate_matches
+
+        # Geometric verification
+        if len(good_matches) >= 4:
+
+            source_points = []
+            destination_points = []
+
+            for match in good_matches:
+
+                source_points.append(
+                    keypoints[match.queryIdx].pt
+                )
+
+                destination_points.append(
+                    keypoints[match.trainIdx].pt
+                )
+
+            source_points = (
+                __import__("numpy")
+                .float32(source_points)
+                .reshape(-1, 1, 2)
+            )
+
+            destination_points = (
+                __import__("numpy")
+                .float32(destination_points)
+                .reshape(-1, 1, 2)
+            )
+
+            try:
+
+                matrix, mask = cv2.findHomography(
+                    source_points,
+                    destination_points,
+                    cv2.RANSAC,
+                    5.0
+                )
+
+                if mask is not None:
+
+                    for match, flag in zip(
+                        good_matches,
+                        mask.ravel()
+                    ):
+
+                        if flag:
+                            inlier_matches.append(match)
+
+            except cv2.error:
+                inlier_matches = []
+
+    # Number of geometrically consistent matches
+    suspicious_matches = len(
+        inlier_matches
+    )
+
+    # Draw candidate/inlier matches
+    if suspicious_matches > 0:
+
+        for match in inlier_matches:
+
+            point1 = tuple(
+                map(
+                    int,
+                    keypoints[match.queryIdx].pt
+                )
+            )
+
+            point2 = tuple(
+                map(
+                    int,
+                    keypoints[match.trainIdx].pt
+                )
+            )
+
+            cv2.circle(
+                output,
+                point1,
+                5,
+                (0, 255, 0),
+                2
+            )
+
+            cv2.circle(
+                output,
+                point2,
+                5,
+                (0, 255, 0),
+                2
+            )
+
+            cv2.line(
+                output,
+                point1,
+                point2,
+                (0, 255, 0),
+                1
+            )
 
     # Create reports directory
     output_folder = "reports"
-    os.makedirs(output_folder, exist_ok=True)
+    os.makedirs(
+        output_folder,
+        exist_ok=True
+    )
 
-    output_name = "COPYMOVE_" + os.path.basename(image_path)
+    output_name = (
+        "COPYMOVE_" +
+        os.path.basename(image_path)
+    )
 
     output_path = os.path.join(
         output_folder,
@@ -85,30 +208,54 @@ def detect_copy_move(image_path):
         output
     )
 
-    # Basic assessment
+    # ------------------------------------------
+    # Copy-Move Assessment
+    # ------------------------------------------
+
     if suspicious_matches == 0:
+
         status = "Low"
         score = 90
-        details = "No strong duplicate feature matches detected."
+
+        details = (
+            "No geometrically consistent "
+            "duplicate feature matches detected."
+        )
 
     elif suspicious_matches < 5:
+
         status = "Moderate"
         score = 70
-        details = "A small number of similar feature matches detected."
+
+        details = (
+            "A small number of geometrically "
+            "consistent duplicate features detected."
+        )
 
     elif suspicious_matches < 15:
+
         status = "Elevated"
         score = 45
-        details = "Several similar feature matches detected."
+
+        details = (
+            "Several geometrically consistent "
+            "duplicate features detected."
+        )
 
     else:
+
         status = "High"
         score = 20
-        details = "A high number of similar feature matches detected."
+
+        details = (
+            "A high number of geometrically "
+            "consistent duplicate features detected."
+        )
 
     return {
         "report": output_path,
         "matches": suspicious_matches,
+        "candidate_matches": len(good_matches),
         "score": score,
         "status": status,
         "details": details
