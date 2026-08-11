@@ -121,7 +121,7 @@ def generate_pdf_report(filename, analysis, decision):
 
         ["Prediction", prediction],
 
-        ["Confidence", f"{decision['confidence']} %"],
+        ["Integrity Score", f"{decision['integrity_score']} / 100"],
 
         ["Generated", now.strftime("%d-%b-%Y  %I:%M %p")]
 
@@ -201,7 +201,7 @@ def generate_pdf_report(filename, analysis, decision):
 
     final_data = [
         ["Prediction", prediction],
-        ["Confidence", f"{decision['confidence']} %"]
+        ["Confidence", f"{decision["integrity_score"]} %"]
     ]
 
     story.append(create_table(final_data))

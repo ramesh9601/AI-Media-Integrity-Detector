@@ -43,20 +43,23 @@ async def upload_file(
         analysis = analyze_image(saved_path)
 
         # Error Level Analysis
-        ela_path = perform_ela(saved_path)
-        analysis["ela_report"] = ela_path
+        ela_result = perform_ela(saved_path)
+        analysis["ela"] = ela_result
+        analysis["ela_report"] = ela_result["report"]
 
         # EXIF Metadata
         exif_data = extract_exif(saved_path)
         analysis["exif"] = exif_data
 
         # Noise Analysis
-        noise_path = detect_noise(saved_path)
-        analysis["noise_report"] = noise_path
+        noise_result = detect_noise(saved_path)
+        analysis["noise"] = noise_result
+        analysis["noise_report"] = noise_result["report"]
 
         # Copy-Move Detection
-        copy_move_path = detect_copy_move(saved_path)
-        analysis["copy_move_report"] = copy_move_path
+        copy_move_result = detect_copy_move(saved_path)
+        analysis["copy_move"] = copy_move_result
+        analysis["copy_move_report"] = copy_move_result["report"]
 
     # Final AI Decision
     final_result = calculate_score(analysis)
