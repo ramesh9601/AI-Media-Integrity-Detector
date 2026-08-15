@@ -26,9 +26,11 @@ async def upload_file(
     extension = os.path.splitext(file.filename)[1].lower()
 
     if extension not in ALLOWED_EXTENSIONS:
-        return {
-            "error": "Unsupported file type"
-        }
+
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported file type."
+        )
 
     try:
         saved_name = save_file(file)
@@ -51,27 +53,123 @@ async def upload_file(
 
     if extension in [".jpg", ".jpeg", ".png"]:
 
-        # OpenCV Analysis
-        analysis = analyze_image(saved_path)
+    # ------------------------------------------
+    # Image Preprocessing
+    # ------------------------------------------
 
-        # Error Level Analysis
-        ela_result = perform_ela(saved_path)
-        analysis["ela"] = ela_result
-        analysis["ela_report"] = ela_result["report"]
+        try:
 
-        # EXIF Metadata
-        exif_data = extract_exif(saved_path)
-        analysis["exif"] = exif_data
+            analysis = analyze_image(
+                saved_path
+            )
 
-        # Noise Analysis
-        noise_result = detect_noise(saved_path)
-        analysis["noise"] = noise_result
-        analysis["noise_report"] = noise_result["report"]
+        except Exception as error:
 
-        # Copy-Move Detection
-        copy_move_result = detect_copy_move(saved_path)
-        analysis["copy_move"] = copy_move_result
-        analysis["copy_move_report"] = copy_move_result["report"]
+            analysis["image_analysis"] = {
+                "status": "Unavailable",
+                "error": str(error)
+            }
+
+    # ------------------------------------------
+    # Error Level Analysis
+    # ------------------------------------------
+
+        try:
+
+            ela_result = perform_ela(
+                saved_path
+            )
+
+            analysis["ela"] = ela_result
+            analysis["ela_report"] = (
+                ela_result.get("report")
+            )
+
+        except Exception as error:
+
+            analysis["ela"] = {
+                "status": "Unavailable",
+                "score": 50,
+                "details": (
+                    "ELA analysis could not be completed."
+                ),
+                "error": str(error)
+            }
+
+    # ------------------------------------------
+    # EXIF Metadata
+    # ------------------------------------------
+
+        try:
+
+            exif_data = extract_exif(
+                saved_path
+            )
+
+            analysis["exif"] = exif_data
+
+        except Exception as error:
+
+            analysis["exif"] = {}
+
+            analysis["exif_error"] = str(error)
+
+    # ------------------------------------------
+    # Noise Analysis
+    # ------------------------------------------
+
+        try:
+
+            noise_result = detect_noise(
+                saved_path
+            )
+
+            analysis["noise"] = noise_result
+            analysis["noise_report"] = (
+                noise_result.get("report")
+            )
+
+        except Exception as error:
+
+            analysis["noise"] = {
+                "status": "Unavailable",
+                "score": 50,
+                "details": (
+                    "Noise analysis could not be completed."
+                ),
+                "error": str(error)
+            }
+
+    # ------------------------------------------
+    # Copy-Move Detection
+    # ------------------------------------------
+
+        try:
+
+            copy_move_result = detect_copy_move(
+                saved_path
+            )
+
+            analysis["copy_move"] = (
+                copy_move_result
+            )
+
+            analysis["copy_move_report"] = (
+                copy_move_result.get("report")
+            )
+
+        except Exception as error:
+
+            analysis["copy_move"] = {
+                "status": "Unavailable",
+                "score": 50,
+                "matches": 0,
+                "details": (
+                    "Copy-move analysis could not "
+                    "be completed."
+                ),
+                "error": str(error)
+            }
 
     # Final AI Decision
     final_result = calculate_score(analysis)
