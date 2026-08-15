@@ -214,21 +214,30 @@ def generate_pdf_report(filename, analysis, decision):
             "Width",
             f"{analysis.get('width', '-')} px"
         ],
-
         [
             "Height",
             f"{analysis.get('height', '-')} px"
         ],
-
         [
             "Channels",
-            str(analysis.get("channels", "-"))
+            str(analysis.get('channels', "-"))
         ],
-
         [
+            "Image Type",
+                analysis.get("image_type", "-")
+        ],
+        [
+            "Aspect Ratio",
+            str(analysis.get("aspect_ratio", "-"))
+        ],
+        [
+            "Resolution",
+            analysis.get("resolution_status", "-")
+        ],
+            [
             "File Size",
             f"{analysis.get('file_size_bytes', 0) / (1024 * 1024):.2f} MB"
-        ]
+            ]
     ]
 
     story.append(
