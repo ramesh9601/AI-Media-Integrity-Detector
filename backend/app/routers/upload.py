@@ -193,13 +193,72 @@ async def upload_file(
     db.refresh(new_upload)
 
     return {
-    "original_filename": file.filename,
-    "saved_filename": saved_name,
-    "message": "Upload Successful",
+        "success": True,
 
-    "analysis": analysis,
+        "message": "Upload successful.",
 
-    "final_decision": final_result,
+        "file": {
+            "original_name": file.filename,
+            "saved_name": saved_name,
+            "file_type": extension
+        },
 
-    "pdf_report": pdf_report
-}
+        "result": {
+            "prediction": final_result.get(
+                "prediction",
+                "Unknown"
+            ),
+            "integrity_score": final_result.get(
+                "integrity_score",
+                final_result.get("confidence", 0)
+            ),
+            "color": final_result.get(
+                "color",
+                "black"
+            ),
+            "reasons": final_result.get(
+                "reasons",
+                []
+            )
+        },
+
+        "forensics": {
+            "image": {
+                "width": analysis.get("width"),
+                "height": analysis.get("height"),
+                "channels": analysis.get("channels"),
+                "image_type": analysis.get("image_type"),
+                "aspect_ratio": analysis.get("aspect_ratio"),
+                "resolution_status": analysis.get(
+                    "resolution_status"
+                ),
+                "file_size_bytes": analysis.get(
+                    "file_size_bytes"
+                )
+            },
+
+            "exif": analysis.get(
+                "exif",
+                {}
+            ),
+
+            "ela": analysis.get(
+                "ela",
+                {}
+            ),
+
+            "noise": analysis.get(
+                "noise",
+                {}
+            ),
+
+            "copy_move": analysis.get(
+                "copy_move",
+                {}
+            )
+        },
+
+        "report": {
+            "pdf": pdf_report
+        }
+    }
