@@ -13,11 +13,16 @@ from detectors.noise_detector import detect_noise
 from detectors.copy_move_detector import detect_copy_move
 from detectors.fusion_engine import calculate_score
 from report_generator.pdf_report import generate_pdf_report
+from app.schemas.upload import UploadResponse
+
 
 router = APIRouter()
 
 
-@router.post("/upload")
+@router.post(
+    "/upload",
+    response_model=UploadResponse
+)
 async def upload_file(
     file: UploadFile = File(...),
     db: Session = Depends(get_db)
