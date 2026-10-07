@@ -1,0 +1,303 @@
+import { useState } from "react";
+import "./App.css";
+
+function App() {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+
+    setSelectedFile(file);
+    setResult(null);
+    setError("");
+  };
+
+  const analyzeMedia = async () => {
+    if (!selectedFile) {
+      setError("Please select an image first.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setResult(null);
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8000/upload",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Analysis failed.");
+      }
+
+      setResult(data);
+
+    } catch (error) {
+      setError(error.message);
+
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="app">
+
+      <header className="header">
+        <div>
+          <h1>AI Media Integrity Detector</h1>
+
+          <p>
+            AI Media Integrity, Deepfake Detection and Forensic Reporting System
+          </p>
+        </div>
+      </header>
+
+
+      <main className="container">
+
+        {/* Upload Section */}
+
+        <section className="upload-card">
+
+          <h2>Digital Media Analysis</h2>
+
+          <p className="description">
+            Upload an image to perform digital forensic analysis using
+            metadata, Error Level Analysis, noise analysis and copy-move detection.
+          </p>
+
+          <div className="upload-box">
+
+            <input
+              type="file"
+              accept=".jpg,.jpeg,.png"
+              onChange={handleFileChange}
+            />
+
+            {selectedFile && (
+              <p className="file-name">
+                Selected: {selectedFile.name}
+              </p>
+            )}
+
+          </div>
+
+
+          <button
+            className="analyze-button"
+            onClick={analyzeMedia}
+            disabled={loading}
+          >
+            {loading ? "Analyzing..." : "Analyze Media"}
+          </button>
+
+
+          {error && (
+            <p className="error-message">
+              {error}
+            </p>
+          )}
+
+        </section>
+
+
+        {/* Results Section */}
+
+        <section className="results-card">
+
+          <h2>Analysis Results</h2>
+
+
+          {/* Integrity Score */}
+
+          <div className="score-box">
+
+            <span>Integrity Score</span>
+
+            <strong>
+              {result
+                ? `${result.result.integrity_score} / 100`
+                : "-- / 100"}
+            </strong>
+
+          </div>
+
+
+          {/* Prediction */}
+
+          <div className="prediction">
+
+            <span>Prediction</span>
+
+            <strong>
+              {result
+                ? result.result.prediction
+                : "Waiting for analysis"}
+            </strong>
+
+          </div>
+
+
+          {/* Forensic Results */}
+
+          <div className="forensics">
+
+
+            {/* EXIF */}
+
+            <div className="forensic-item">
+
+              <h3>EXIF Metadata</h3>
+
+              {result ? (
+                <>
+                  <p>
+                    {Object.keys(result.forensics.exif).length > 0
+                      ? "Metadata available"
+                      : "No EXIF metadata found"}
+                  </p>
+
+                  {Object.keys(result.forensics.exif).length > 0 && (
+                    <small>
+                      {Object.keys(result.forensics.exif).length} metadata fields found
+                    </small>
+                  )}
+                </>
+              ) : (
+                <p>Waiting...</p>
+              )}
+
+            </div>
+
+
+            {/* ELA */}
+
+            <div className="forensic-item">
+
+              <h3>ELA Analysis</h3>
+
+              {result ? (
+                <>
+                  <p>
+                    Status: {result.forensics.ela.status || "Completed"}
+                  </p>
+
+                  <p>
+                    Score: {result.forensics.ela.score ?? "N/A"}
+                  </p>
+
+                  <small>
+                    {result.forensics.ela.details ||
+                      "No additional details."}
+                  </small>
+                </>
+              ) : (
+                <p>Waiting...</p>
+              )}
+
+            </div>
+
+
+            {/* Noise */}
+
+            <div className="forensic-item">
+
+              <h3>Noise Analysis</h3>
+
+              {result ? (
+                <>
+                  <p>
+                    Status: {result.forensics.noise.status || "Completed"}
+                  </p>
+
+                  <p>
+                    Score: {result.forensics.noise.score ?? "N/A"}
+                  </p>
+
+                  <small>
+                    {result.forensics.noise.details ||
+                      "No additional details."}
+                  </small>
+                </>
+              ) : (
+                <p>Waiting...</p>
+              )}
+
+            </div>
+
+
+            {/* Copy-Move */}
+
+            <div className="forensic-item">
+
+              <h3>Copy-Move Detection</h3>
+
+              {result ? (
+                <>
+                  <p>
+                    Status: {result.forensics.copy_move.status || "Completed"}
+                  </p>
+
+                  <p>
+                    Matches: {result.forensics.copy_move.matches ?? 0}
+                  </p>
+
+                  <small>
+                    {result.forensics.copy_move.details ||
+                      "No additional details."}
+                  </small>
+                </>
+              ) : (
+                <p>Waiting...</p>
+              )}
+
+            </div>
+
+          </div>
+
+
+          {/* PDF Report Button */}
+
+          {result && result.report && result.report.pdf && (
+            <a
+              className="report-button"
+              href={`http://127.0.0.1:8000/${result.report.pdf.replace(/\\/g, "/")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View PDF Report
+            </a>
+          )}
+
+        </section>
+
+      </main>
+
+
+      <footer>
+
+        <p>
+          AI Media Integrity Detector © 2026
+        </p>
+
+      </footer>
+
+    </div>
+  );
+}
+
+export default App;

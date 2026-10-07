@@ -513,7 +513,7 @@ def generate_pdf_report(filename, analysis, decision):
     project_data = [
         [
             "Project",
-            "AI Media Integrity Detector"
+            "AI Media Integrity,Deepfake detection and Forensic reporting system"
         ],
 
         [
@@ -522,8 +522,8 @@ def generate_pdf_report(filename, analysis, decision):
         ],
 
         [
-            "Developer",
-            "NALLABELLI RAMESH"
+            "Developed by",
+            "Nallabelli Ramesh,Bukke sai kumar naik,Gadeerappa gari Eresh"
         ]
     ]
 
