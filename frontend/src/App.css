@@ -240,3 +240,51 @@ footer {
 .report-button:hover {
   background: #146c43;
 }
+
+.score-label {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #0f5132;
+}
+
+.prediction-note {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #667085;
+}
+
+/* Prediction Colors */
+
+.prediction-default {
+  color: #0f5132;
+}
+
+.prediction-authentic {
+  color: #198754;
+}
+
+.prediction-probably-authentic {
+  color: #2e8b57;
+}
+
+.prediction-manual-review {
+  color: #b8860b;
+}
+
+.prediction-suspicious {
+  color: #e65100;
+}
+
+.prediction-high-risk {
+  color: #dc2626;
+}
+
+.prediction-likely-deepfake {
+  color: #8b0000;
+}
+
+.prediction-confirmed {
+  color: #000000;
+}

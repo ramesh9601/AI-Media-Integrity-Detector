@@ -53,6 +53,35 @@ function App() {
     }
   };
 
+
+  const getPredictionClass = (prediction) => {
+    switch (prediction) {
+      case "Authentic":
+        return "prediction-authentic";
+
+      case "Probably Authentic":
+        return "prediction-probably-authentic";
+
+      case "Needs Manual Review":
+        return "prediction-manual-review";
+
+      case "Suspicious":
+        return "prediction-suspicious";
+
+      case "High Risk":
+        return "prediction-high-risk";
+
+      case "Likely Deepfake":
+        return "prediction-likely-deepfake";
+
+      case "Confirmed Manipulation":
+        return "prediction-confirmed";
+
+      default:
+        return "prediction-default";
+    }
+  };
+
   return (
     <div className="app">
 
@@ -134,20 +163,45 @@ function App() {
                 : "-- / 100"}
             </strong>
 
+            {result && (
+              <div className="score-label">
+                {result.result.integrity_score >= 95
+                  ? "Excellent Integrity"
+                  : result.result.integrity_score >= 85
+                    ? "Good Integrity"
+                    : result.result.integrity_score >= 70
+                      ? "Needs Manual Review"
+                      : result.result.integrity_score >= 50
+                        ? "Suspicious"
+                        : "High Risk"}
+              </div>
+            )}
+
           </div>
 
 
-          {/* Prediction */}
-
           <div className="prediction">
 
-            <span>Prediction</span>
+            <span>Final Assessment</span>
 
-            <strong>
+            <strong
+              style={{
+                color: result ? result.result.color : "#0f5132",
+                fontWeight: "bold",
+              }}
+            >
               {result
                 ? result.result.prediction
                 : "Waiting for analysis"}
             </strong>
+
+            {result && (
+              <p className="prediction-note">
+                This assessment is based on the available forensic
+                indicators and should not be treated as absolute proof
+                of manipulation or AI generation.
+              </p>
+            )}
 
           </div>
 
