@@ -3,6 +3,7 @@ import "./App.css";
 
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -10,7 +11,11 @@ function App() {
   const handleFileChange = (event) => {
     const file = event.target.files[0];
 
-    setSelectedFile(file);
+    if (file) {
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+
     setResult(null);
     setError("");
   };
@@ -110,19 +115,26 @@ function App() {
           </p>
 
           <div className="upload-box">
-
             <input
               type="file"
               accept=".jpg,.jpeg,.png"
               onChange={handleFileChange}
             />
 
+            {previewUrl && (
+              <div className="image-preview">
+                <img
+                  src={previewUrl}
+                  alt="Selected media preview"
+                />
+              </div>
+            )}
+
             {selectedFile && (
               <p className="file-name">
                 Selected: {selectedFile.name}
               </p>
             )}
-
           </div>
 
 
@@ -177,6 +189,18 @@ function App() {
               </div>
             )}
 
+            {result && (
+              <div className="score-progress">
+                <div
+                  className="score-progress-bar"
+                  style={{
+                    width: `${result.result.integrity_score}%`,
+                    backgroundColor: result.result.color,
+                  }}
+                ></div>
+              </div>
+            )}
+
           </div>
 
 
@@ -204,15 +228,28 @@ function App() {
             )}
 
           </div>
+          {/* Forensic Findings */}
+
+          {result && result.result.reasons && (
+            <div className="findings-box">
+              <h3>Forensic Findings</h3>
+
+              <ul>
+                {result.result.reasons.map((reason, index) => (
+                  <li key={index}>
+                    {reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
 
           {/* Forensic Results */}
 
           <div className="forensics">
 
-
             {/* EXIF */}
-
             <div className="forensic-item">
 
               <h3>EXIF Metadata</h3>
@@ -239,7 +276,6 @@ function App() {
 
 
             {/* ELA */}
-
             <div className="forensic-item">
 
               <h3>ELA Analysis</h3>
@@ -258,6 +294,15 @@ function App() {
                     {result.forensics.ela.details ||
                       "No additional details."}
                   </small>
+
+                  {result.forensics.ela.report && (
+                    <div className="forensic-image">
+                      <img
+                        src={`http://127.0.0.1:8000/${result.forensics.ela.report.replace(/\\/g, "/")}`}
+                        alt="ELA forensic analysis"
+                      />
+                    </div>
+                  )}
                 </>
               ) : (
                 <p>Waiting...</p>
@@ -267,7 +312,6 @@ function App() {
 
 
             {/* Noise */}
-
             <div className="forensic-item">
 
               <h3>Noise Analysis</h3>
@@ -286,6 +330,15 @@ function App() {
                     {result.forensics.noise.details ||
                       "No additional details."}
                   </small>
+
+                  {result.forensics.noise.report && (
+                    <div className="forensic-image">
+                      <img
+                        src={`http://127.0.0.1:8000/${result.forensics.noise.report.replace(/\\/g, "/")}`}
+                        alt="Noise forensic analysis"
+                      />
+                    </div>
+                  )}
                 </>
               ) : (
                 <p>Waiting...</p>
@@ -295,7 +348,6 @@ function App() {
 
 
             {/* Copy-Move */}
-
             <div className="forensic-item">
 
               <h3>Copy-Move Detection</h3>
@@ -314,6 +366,15 @@ function App() {
                     {result.forensics.copy_move.details ||
                       "No additional details."}
                   </small>
+
+                  {result.forensics.copy_move.report && (
+                    <div className="forensic-image">
+                      <img
+                        src={`http://127.0.0.1:8000/${result.forensics.copy_move.report.replace(/\\/g, "/")}`}
+                        alt="Copy-move forensic analysis"
+                      />
+                    </div>
+                  )}
                 </>
               ) : (
                 <p>Waiting...</p>
