@@ -2,9 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import upload, health
+from app.routers import upload, health, auth
 from database.database import engine
-from database.models import Base
+from database.models import Base, User
 
 Base.metadata.create_all(bind=engine)
 
@@ -34,3 +34,4 @@ app.mount(
 
 app.include_router(health.router)
 app.include_router(upload.router)
+app.include_router(auth.router)

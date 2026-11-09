@@ -11,7 +11,7 @@ class FileInfo(BaseModel):
 
 class ResultInfo(BaseModel):
     prediction: str
-    integrity_score: float
+    integrity_score: Optional[float] = None
     color: str
     reasons: List[str]
 
@@ -22,6 +22,7 @@ class ForensicsInfo(BaseModel):
     ela: Dict[str, Any]
     noise: Dict[str, Any]
     copy_move: Dict[str, Any]
+    video: Dict[str, Any] = {}
 
 
 class ReportInfo(BaseModel):
