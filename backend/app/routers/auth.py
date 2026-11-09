@@ -1,6 +1,6 @@
 
 from datetime import datetime, timedelta, timezone
-
+import os
 import jwt
 from pwdlib import PasswordHash
 
@@ -34,7 +34,12 @@ password_hash = PasswordHash.recommended()
 
 
 # JWT configuration
-SECRET_KEY = "CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_BEFORE_DEPLOYMENT"
+# JWT configuration
+SECRET_KEY = os.getenv("SECRET_KEY")
+
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY environment variable is not configured")
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
