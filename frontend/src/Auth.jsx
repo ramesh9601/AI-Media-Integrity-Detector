@@ -1,8 +1,8 @@
-
 import { useState } from "react";
 import "./Auth.css";
+import { getApiBaseUrl } from "./services/api";
 
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = getApiBaseUrl();
 
 export default function Auth({ onLogin }) {
     const [isRegister, setIsRegister] = useState(false);
@@ -19,7 +19,9 @@ export default function Auth({ onLogin }) {
         setMessage("");
         setError("");
 
-        const endpoint = isRegister ? "/auth/register" : "/auth/login";
+        const endpoint = isRegister
+            ? "/auth/register"
+            : "/auth/login";
 
         const body = isRegister
             ? { name, email, password }
@@ -30,6 +32,7 @@ export default function Auth({ onLogin }) {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    Accept: "application/json",
                 },
                 body: JSON.stringify(body),
             });
@@ -61,7 +64,9 @@ export default function Auth({ onLogin }) {
     return (
         <div className="auth-page">
             <div className="auth-card">
-                <div className="auth-brand">AI Media Integrity Detector</div>
+                <div className="auth-brand">
+                    AI Media Integrity Detector
+                </div>
 
                 <h1>{isRegister ? "Create Account" : "Welcome Back"}</h1>
 
@@ -71,8 +76,13 @@ export default function Auth({ onLogin }) {
                         : "Log in to access your media analysis dashboard."}
                 </p>
 
-                {message && <div className="auth-message">{message}</div>}
-                {error && <div className="auth-error">{error}</div>}
+                {message && (
+                    <div className="auth-message">{message}</div>
+                )}
+
+                {error && (
+                    <div className="auth-error">{error}</div>
+                )}
 
                 <form onSubmit={handleSubmit}>
                     {isRegister && (
@@ -111,7 +121,11 @@ export default function Auth({ onLogin }) {
                             placeholder="Enter your password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            autoComplete={isRegister ? "new-password" : "current-password"}
+                            autoComplete={
+                                isRegister
+                                    ? "new-password"
+                                    : "current-password"
+                            }
                             minLength={isRegister ? 8 : undefined}
                             required
                         />
@@ -134,6 +148,7 @@ export default function Auth({ onLogin }) {
                     {isRegister
                         ? "Already have an account?"
                         : "Don't have an account?"}{" "}
+
                     <button
                         type="button"
                         onClick={() => {

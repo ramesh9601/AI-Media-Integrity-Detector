@@ -4,7 +4,9 @@ import "./App.css";
 
 import Auth from "./Auth";
 
-const API_URL = "http://127.0.0.1:8000";
+import { getApiBaseUrl } from "./services/api";
+
+const API_URL = getApiBaseUrl();
 
 const ALLOWED_EXTENSIONS = [
 

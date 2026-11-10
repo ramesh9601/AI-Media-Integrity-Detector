@@ -1,10 +1,7 @@
-
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = "https://ai-media-integrity-detector.onrender.com";
 
 /**
  * Build request headers.
- * Do not set Content-Type manually for FormData;
- * the browser adds the required multipart boundary.
  */
 function getHeaders(token, isFormData = false) {
     const headers = {};
@@ -21,7 +18,7 @@ function getHeaders(token, isFormData = false) {
 }
 
 /**
- * Parse API responses and return helpful error messages.
+ * Parse API responses.
  */
 async function handleResponse(response) {
     const contentType = response.headers.get("content-type") || "";
@@ -63,7 +60,7 @@ export async function uploadMedia(file, token) {
 }
 
 /**
- * Retrieve the authenticated user's analysis history.
+ * Retrieve analysis history.
  */
 export async function getAnalysisHistory(token) {
     const response = await fetch(`${API_BASE_URL}/history/`, {
@@ -75,11 +72,15 @@ export async function getAnalysisHistory(token) {
 }
 
 /**
- * Convert a backend-relative file path to a browser URL.
+ * Convert backend-relative file paths to browser URLs.
  */
 export function getMediaUrl(path) {
     if (!path) {
         return "";
+    }
+
+    if (/^https?:\/\//i.test(path)) {
+        return path;
     }
 
     const normalizedPath = String(path)
@@ -90,7 +91,7 @@ export function getMediaUrl(path) {
 }
 
 /**
- * Return the configured API base URL.
+ * Return API base URL.
  */
 export function getApiBaseUrl() {
     return API_BASE_URL;
