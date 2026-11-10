@@ -1,34 +1,45 @@
+
 # Python
 __pycache__/
 *.py[cod]
 *.pyo
-
-# Virtual Environment
-venv/
-
-# Environment variables
-.env
-
-# Database
-*.db
-*.sqlite3
-
-# Logs
-*.log
-
-# Generated uploads
-backend/uploads/
-
-# Generated reports
-backend/reports/
-
-# Python cache
 .pytest_cache/
 .mypy_cache/
 
-# VS Code settings
-.vscode/
+# Virtual environments
+venv/
+.venv/
+env/
 
-# OS files
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Generated uploads and reports
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+backend/reports/*
+backend/report_generator/reports/*
+!backend/reports/.gitkeep
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# IDE and OS files
+.vscode/
+.idea/
 .DS_Store
 Thumbs.db
