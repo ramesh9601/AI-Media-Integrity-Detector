@@ -1,4 +1,3 @@
-
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from database.database import Base
 
@@ -8,6 +7,7 @@ class Upload(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+
     original_filename = Column(String)
     saved_filename = Column(String)
     file_type = Column(String)
@@ -15,7 +15,14 @@ class Upload(Base):
 
     integrity_score = Column(Float, nullable=True)
     prediction = Column(String, nullable=True)
+
+    # Cloudinary media storage details
+    media_url = Column(String, nullable=True)
+    media_public_id = Column(String, nullable=True)
+
+    # PDF report storage details
     report_path = Column(String, nullable=True)
+    report_public_id = Column(String, nullable=True)
 
 
 class User(Base):

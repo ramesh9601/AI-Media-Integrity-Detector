@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://ai-media-integrity-detector.onrender.com";
+const API_BASE_URL = "http://127.0.0.1:8000";
 
 /**
  * Build request headers.
@@ -40,7 +40,7 @@ async function handleResponse(response) {
 }
 
 /**
- * Upload and analyze an image or video.
+ * Upload and analyze media.
  */
 export async function uploadMedia(file, token) {
     if (!file) {
@@ -75,9 +75,7 @@ export async function getAnalysisHistory(token) {
  * Convert backend-relative file paths to browser URLs.
  */
 export function getMediaUrl(path) {
-    if (!path) {
-        return "";
-    }
+    if (!path) return "";
 
     if (/^https?:\/\//i.test(path)) {
         return path;

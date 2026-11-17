@@ -31,3 +31,6 @@ uvicorn==0.52.1
 psycopg[binary]==3.3.8
 email-validator==2.3.0
 matplotlib==3.10.8
+cloudinary
+slowapi
+requests

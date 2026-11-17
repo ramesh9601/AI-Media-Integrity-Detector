@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class FileInfo(BaseModel):
@@ -18,11 +18,12 @@ class ResultInfo(BaseModel):
 
 class ForensicsInfo(BaseModel):
     image: Dict[str, Any]
+    ai_detection: Dict[str, Any] = Field(default_factory=dict)
     exif: Dict[str, Any]
     ela: Dict[str, Any]
     noise: Dict[str, Any]
     copy_move: Dict[str, Any]
-    video: Dict[str, Any] = {}
+    video: Dict[str, Any] = Field(default_factory=dict)
 
 
 class ReportInfo(BaseModel):

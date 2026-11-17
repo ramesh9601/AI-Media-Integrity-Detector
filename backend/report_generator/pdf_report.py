@@ -352,7 +352,7 @@ def generate_pdf_report(filename, analysis, decision):
         os.path.basename(filename)
     )[0]
 
-    pdf_name = f"REPORT_{base_name}.pdf"
+    pdf_name = f"REPORT_{uuid.uuid4().hex}.pdf"
 
     pdf_path = os.path.join(
         REPORT_FOLDER,

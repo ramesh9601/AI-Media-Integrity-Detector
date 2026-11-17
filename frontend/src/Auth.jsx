@@ -9,6 +9,7 @@ export default function Auth({ onLogin }) {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
@@ -51,6 +52,7 @@ export default function Auth({ onLogin }) {
                 setMessage("Registration successful! You can now log in.");
                 setIsRegister(false);
                 setPassword("");
+                setShowPassword(false);
             } else {
                 onLogin(data);
             }
@@ -115,20 +117,37 @@ export default function Auth({ onLogin }) {
 
                     <div className="auth-field">
                         <label htmlFor="auth-password">Password</label>
-                        <input
-                            id="auth-password"
-                            type="password"
-                            placeholder="Enter your password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            autoComplete={
-                                isRegister
-                                    ? "new-password"
-                                    : "current-password"
-                            }
-                            minLength={isRegister ? 8 : undefined}
-                            required
-                        />
+
+                        <div className="password-input-wrapper">
+                            <input
+                                id="auth-password"
+                                type={showPassword ? "text" : "password"}
+                                placeholder="Enter your password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                autoComplete={
+                                    isRegister
+                                        ? "new-password"
+                                        : "current-password"
+                                }
+                                minLength={isRegister ? 8 : undefined}
+                                required
+                            />
+
+                            <button
+                                type="button"
+                                className="password-eye"
+                                onClick={() => setShowPassword(!showPassword)}
+                                aria-label={
+                                    showPassword
+                                        ? "Hide password"
+                                        : "Show password"
+                                }
+                                aria-pressed={showPassword}
+                            >
+                                {showPassword ? "🙈" : "👁"}
+                            </button>
+                        </div>
                     </div>
 
                     <button
@@ -155,6 +174,7 @@ export default function Auth({ onLogin }) {
                             setIsRegister(!isRegister);
                             setMessage("");
                             setError("");
+                            setShowPassword(false);
                         }}
                     >
                         {isRegister ? "Login" : "Register"}

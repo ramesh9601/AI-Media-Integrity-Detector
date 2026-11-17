@@ -83,59 +83,64 @@ function App() {
   };
 
   // Convert backend file paths into browser-accessible URLs.
-
   const getFileUrl = (path) => {
     if (!path) return "";
 
-    const normalizedPath = String(path)
+    const filePath = String(path);
+
+    // Preserve complete URLs, such as Cloudinary URLs.
+    if (/^https?:\/\//i.test(filePath)) {
+      return filePath;
+    }
+
+    const normalizedPath = filePath
       .replace(/\\/g, "/")
       .replace(/^\/+/, "");
 
-    return `${API_URL}/${normalizedPath}`;
+    return `${API_URL.replace(/\/+$/, "")}/${normalizedPath}`;
   };
 
-  // Extract the PDF report path from the backend response.
+  // Download a PDF through the authenticated, ownership-checked endpoint.
+  const handlePdfDownload = async (uploadId) => {
+    if (!currentUser?.access_token || !uploadId) {
+      setError("Please log in to access the PDF report.");
+      return;
+    }
 
-  const getReportPath = (data) => {
+    const pdfWindow = window.open("about:blank", "_blank");
 
-    return (
+    try {
+      const response = await fetch(
+        `${API_URL}/auth/reports/download/${uploadId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${currentUser.access_token}`,
+          },
+        }
+      );
 
-      data?.report?.pdf ||
-
-      data?.report_path ||
-
-      data?.pdf_report ||
-
-      data?.report_url ||
-
-      data?.result?.report?.pdf ||
-
-      data?.result?.report_path ||
-
-      data?.result?.pdf_report ||
-
-      null
-
-    );
-
-  };
-
-  // Release the currently selected preview URL.
-
-  const clearPreview = () => {
-
-    setPreviewUrl((previousUrl) => {
-
-      if (previousUrl) {
-
-        URL.revokeObjectURL(previousUrl);
-
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.detail || "PDF download failed.");
       }
 
-      return null;
+      const blob = await response.blob();
+      const pdfUrl = URL.createObjectURL(blob);
 
-    });
+      if (pdfWindow) {
+        pdfWindow.location.href = pdfUrl;
+      } else {
+        window.location.href = pdfUrl;
+      }
 
+      setTimeout(() => URL.revokeObjectURL(pdfUrl), 300000);
+
+    } catch (error) {
+      if (pdfWindow) pdfWindow.close();
+
+      console.error("PDF error:", error);
+      setError(error.message || "PDF download failed.");
+    }
   };
 
   // Handle image and video selection.
@@ -504,7 +509,6 @@ function App() {
 
     integrityScore !== "";
 
-  const reportPath = getReportPath(result);
 
   // Video details are returned by the backend under forensics.video.
   const videoAnalysis =
@@ -1537,35 +1541,29 @@ function App() {
 
             </div>
 
-            {/* PDF Report */}
+            {/* PDF Report: authenticated reports are opened from Analysis History. */}
 
             {result && (
 
               <div className="report-section">
 
-                {reportPath ? (
+                {currentUser?.access_token ? (
 
-                  <a
+                  <p className="prediction-note">
 
-                    className="report-button"
+                    To securely view this PDF report, open Analysis History
 
-                    href={getFileUrl(reportPath)}
+                    below and select Open PDF for the saved analysis.
 
-                    target="_blank"
-
-                    rel="noopener noreferrer"
-
-                  >
-
-                    📄 View PDF Report
-
-                  </a>
+                  </p>
 
                 ) : (
 
                   <p className="prediction-note">
 
-                    PDF report path was not found in the analysis response.
+                    Log in before analyzing media to save the report to your
+
+                    account and access it securely from Analysis History.
 
                   </p>
 
@@ -1855,24 +1853,14 @@ function App() {
 
                               </button>
 
-                              {item.report_path && (
-
-                                <a
-
+                              {item.id && (
+                                <button
+                                  type="button"
                                   className="report-button"
-
-                                  href={getFileUrl(item.report_path)}
-
-                                  target="_blank"
-
-                                  rel="noopener noreferrer"
-
+                                  onClick={() => handlePdfDownload(item.id)}
                                 >
-
                                   Open PDF
-
-                                </a>
-
+                                </button>
                               )}
 
                             </div>
@@ -1943,28 +1931,16 @@ function App() {
 
                     </p>
 
-                    {selectedHistoryItem.report_path ? (
-
-                      <a
-
+                    {selectedHistoryItem.id ? (
+                      <button
+                        type="button"
                         className="report-button"
-
-                        href={getFileUrl(selectedHistoryItem.report_path)}
-
-                        target="_blank"
-
-                        rel="noopener noreferrer"
-
+                        onClick={() => handlePdfDownload(selectedHistoryItem.id)}
                       >
-
                         Open PDF Report
-
-                      </a>
-
+                      </button>
                     ) : (
-
-                      <p>No PDF report path is recorded for this analysis.</p>
-
+                      <p>No report is available.</p>
                     )}
 
                     <div className="history-detail-actions">

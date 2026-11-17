@@ -1,8 +1,12 @@
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
+import logging
+logger = logging.getLogger(__name__)
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 import os
 
 from app.services.file_service import save_file
+from app.services.cloudinary_service import upload_to_cloudinary
 from app.config import ALLOWED_EXTENSIONS
 from database.database import get_db
 from database.models import Upload, User
@@ -26,7 +30,7 @@ from detectors.fusion_engine import (
 
 from report_generator.pdf_report import generate_pdf_report
 from app.schemas.upload import UploadResponse
-
+from app.limiter import limiter
 
 router = APIRouter()
 
@@ -36,7 +40,9 @@ router = APIRouter()
 # ------------------------------------------
 
 @router.post("/upload", response_model=UploadResponse)
+@limiter.limit("10/minute")
 async def upload_file(
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_optional_current_user)
@@ -76,10 +82,12 @@ async def upload_file(
         try:
             analysis = analyze_image(saved_path)
 
-        except Exception as error:
+        except Exception:
+            logger.exception("Image preprocessing failed")
+
             analysis["image_analysis"] = {
                 "status": "Unavailable",
-                "error": str(error)
+                "error": "Image preprocessing could not be completed."
             }
 
         # AI-generated image detection
@@ -100,10 +108,12 @@ async def upload_file(
 
             analysis["ai_detection"] = ai_result
 
-        except Exception as error:
+        except Exception:
+            logger.exception("AI image detection failed")
+
             analysis["ai_detection"] = {
                 "status": "Unavailable",
-                "error": str(error),
+                "error": "AI image detection could not be completed.",
                 "warning": (
                     "AI-generated image detection could not be "
                     "completed. Do not interpret this as evidence "
@@ -118,21 +128,27 @@ async def upload_file(
             analysis["ela"] = ela_result
             analysis["ela_report"] = ela_result.get("report")
 
-        except Exception as error:
+        except Exception:
+            logger.exception("ELA analysis failed")
+
             analysis["ela"] = {
                 "status": "Unavailable",
                 "score": 50,
                 "details": "ELA analysis could not be completed.",
-                "error": str(error)
+                "error": "ELA analysis is temporarily unavailable."
             }
 
         # EXIF metadata analysis
         try:
             analysis["exif"] = extract_exif(saved_path)
 
-        except Exception as error:
+        except Exception:
+            logger.exception("EXIF metadata analysis failed")
+
             analysis["exif"] = {}
-            analysis["exif_error"] = str(error)
+            analysis["exif_error"] = (
+            "EXIF metadata analysis could not be completed."
+        )
 
         # Noise analysis
         try:
@@ -141,12 +157,14 @@ async def upload_file(
             analysis["noise"] = noise_result
             analysis["noise_report"] = noise_result.get("report")
 
-        except Exception as error:
+        except Exception:
+            logger.exception("Noise analysis failed")
+
             analysis["noise"] = {
                 "status": "Unavailable",
                 "score": 50,
                 "details": "Noise analysis could not be completed.",
-                "error": str(error)
+                "error": "Noise analysis is temporarily unavailable."
             }
 
         # Copy-move detection
@@ -158,15 +176,15 @@ async def upload_file(
                 copy_move_result.get("report")
             )
 
-        except Exception as error:
+        except Exception:
+            logger.exception("Copy-move detection failed")
+
             analysis["copy_move"] = {
                 "status": "Unavailable",
                 "score": 50,
                 "matches": 0,
-                "details": (
-                    "Copy-move analysis could not be completed."
-                ),
-                "error": str(error)
+                "details": "Copy-move analysis could not be completed.",
+                "error": "Copy-move detection is temporarily unavailable."
             }
 
 
@@ -183,14 +201,16 @@ async def upload_file(
                 output_folder="reports/debug_video_frames"
             )
 
-        except Exception as error:
+        except Exception:
+            logger.exception("Video analysis failed")
+
             analysis["video"] = {
                 "detection_summary": {
-                    "analysis_status": "failed",
-                    "frames_analyzed": 0
-                },
-                "error": str(error)
-            }
+                "analysis_status": "failed",
+                "frames_analyzed": 0
+            },
+            "error": "Video analysis could not be completed."
+        }
 
 
     # ------------------------------------------
@@ -234,11 +254,79 @@ async def upload_file(
     # GENERATE PDF REPORT
     # ------------------------------------------
 
-    pdf_report = generate_pdf_report(
-        file.filename,
-        analysis,
-        final_result
-    )
+    try:
+        pdf_report = generate_pdf_report(
+            file.filename,
+            analysis,
+            final_result
+        )
+
+    except Exception:
+        logger.exception("PDF report generation failed")
+
+        raise HTTPException(
+            status_code=500,
+            detail="PDF report generation failed. Please try again later."
+        )
+    # ------------------------------------------
+    # CLOUDINARY STORAGE
+    # ------------------------------------------
+
+    media_url = None
+    media_public_id = None
+    report_public_id = None
+    storage_warnings = []
+
+    # Upload original image or video
+    try:
+        if extension in [".jpg", ".jpeg", ".png"]:
+            resource_type = "image"
+
+        elif extension in [".mp4", ".avi", ".mov"]:
+            resource_type = "video"
+
+        else:
+            resource_type = None
+            storage_warnings.append(
+                "Original audio media storage is not configured."
+            )
+
+        if resource_type:
+            media_result = upload_to_cloudinary(
+                saved_path,
+                resource_type=resource_type,
+                folder="media_integrity/media"
+            )
+
+            media_url = media_result["url"]
+            media_public_id = media_result["public_id"]
+
+    except Exception:
+        logger.exception("Media cloud storage failed")
+
+        storage_warnings.append(
+            "Media cloud storage failed. "
+            "Please try again later."
+        )
+
+    # Upload generated PDF report
+    try:
+        report_result = upload_to_cloudinary(
+            pdf_report,
+            resource_type="raw",
+            folder="media_integrity/reports",
+            delivery_type="private"
+        )
+
+        report_public_id = report_result["public_id"]
+
+    except Exception:
+        logger.exception("PDF cloud storage failed")
+
+        storage_warnings.append(
+            "PDF cloud storage failed. "
+            "Please try again later."
+        )
 
     # ------------------------------------------
     # SAVE ANALYSIS ONLY FOR LOGGED-IN USERS
@@ -261,11 +349,35 @@ async def upload_file(
                 "prediction",
                 "Unknown"
             ),
-            report_path=pdf_report
+            report_path=None,
+            report_public_id=report_public_id,
+            media_url=media_url,
+            media_public_id=media_public_id
         )
 
-        db.add(new_upload)
-        db.commit()
+        try:
+            db.add(new_upload)
+            db.commit()
+            db.refresh(new_upload)
+
+        except SQLAlchemyError as error:
+            db.rollback()
+
+            logger.exception(
+                "Failed to save upload analysis to database: %s",
+                error
+            )
+
+            print("DATABASE ERROR TYPE:", type(error).__name__)
+            print("DATABASE ERROR DETAILS:", repr(error))
+
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    "Analysis completed, but the result could not "
+                    "be saved. Please try again later."
+                )
+            )
 
     # Guest users are not saved in the database.
     # Their analysis and PDF report are still returned.
@@ -276,7 +388,12 @@ async def upload_file(
 
     return {
         "success": True,
-        "message": "Upload successful.",
+        "message": (
+            "Analysis completed and cloud storage successful."
+            if not storage_warnings
+            else "Analysis completed, but cloud storage was incomplete: "
+                 + "; ".join(storage_warnings)
+        ),
 
         "file": {
             "original_name": file.filename,
